@@ -25,7 +25,8 @@ fn broadcast_add[
 ):
     row = thread_idx.y
     col = thread_idx.x
-    # FILL ME IN (roughly 2 lines)
+    if row < size and col < size:
+        output[row, col] = a[0, col] + b[row, 0]
 
 
 # ANCHOR_END: broadcast_add_layout_tensor
@@ -71,7 +72,7 @@ def main():
 
         with out_buf.map_to_host() as out_buf_host:
             print("out:", out_buf_host)
-            print("expected:", expected_buf)
+            print("exp:", expected_buf)
             for i in range(SIZE):
                 for j in range(SIZE):
                     assert_equal(
