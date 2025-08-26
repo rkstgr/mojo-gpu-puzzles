@@ -12,7 +12,7 @@ alias BLOCKS_PER_GRID = 1
 alias THREADS_PER_BLOCK = SIZE
 alias dtype = DType.float32
 alias vector_layout = Layout.row_major(SIZE)
-alias ITER = 2
+alias ITER = 3
 
 
 # ANCHOR: first_crash
@@ -69,7 +69,8 @@ fn collaborative_filter(
         # Apply collaborative filter with neighbors
         if thread_id > 0:
             shared_workspace[thread_id] += shared_workspace[thread_id - 1] * 0.5
-        barrier()
+    
+    barrier()
 
     # Phase 3: Final synchronization and output
     barrier()
@@ -100,7 +101,7 @@ def main():
         print()
 
         with DeviceContext() as ctx:
-            input_ptr = UnsafePointer[Scalar[dtype]]()
+            input_ptr = ctx.enqueue_create_buffer[dtype](SIZE).enqueue_fill(0)
             result_buf = ctx.enqueue_create_buffer[dtype](SIZE).enqueue_fill(0)
 
             # Enqueue function
