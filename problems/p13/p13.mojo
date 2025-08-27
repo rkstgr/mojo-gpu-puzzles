@@ -26,7 +26,12 @@ fn conv_1d_simple[
 ):
     global_i = block_dim.x * block_idx.x + thread_idx.x
     local_i = thread_idx.x
-    # FILL ME IN (roughly 14 lines)
+    
+    if global_i < SIZE:
+        for j in range(CONV):
+            if global_i + j < SIZE:
+                output[global_i] += a[global_i + j] * b[j]
+    
 
 
 # ANCHOR_END: conv_1d_simple
@@ -50,7 +55,19 @@ fn conv_1d_block_boundary[
 ):
     global_i = block_dim.x * block_idx.x + thread_idx.x
     local_i = thread_idx.x
-    # FILL ME IN (roughly 18 lines)
+    
+    shared_a = tb[dtype]().row_major[SIZE_2 + CONV_2 - 1]().shared().alloc()
+    if local_i < SIZE_2:
+        shared_a[local_i] = a[global_i]
+    if local_i < CONV_2 - 1:
+        shared_a[SIZE_2 + local_i] = a[global_i + local_i]
+
+    barrier()
+
+    if global_i < SIZE_2:
+        for j in range(CONV):
+            if local_i + j < SIZE_2:
+                output[global_i] += shared_a[local_i + j] * b[j]
 
 
 # ANCHOR_END: conv_1d_block_boundary
