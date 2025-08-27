@@ -1,4 +1,10 @@
 Quick reference: Debugging decision tree
+# Setup
+
+```sh
+pixi run setup-cuda-gdb
+```
+
 # 🤔 What type of issue are you debugging?
 
 ## Program crashes before GPU code runs
