@@ -1,4 +1,4 @@
-from sys import sizeof
+import sys
 from testing import assert_equal
 from gpu.host import DeviceContext
 
@@ -32,9 +32,13 @@ fn axis_sum[
     cache = tb[dtype]().row_major[TPB]().shared().alloc()
     if local_i < SIZE:
         cache[local_i] = a[batch, local_i]
+    else:
+        cache[local_i] = 0
 
     barrier()
+
     stride = 1
+
     while stride < SIZE:
         var current_val: output.element_type = 0
         if local_i + stride < size:
@@ -43,12 +47,12 @@ fn axis_sum[
         barrier()
         if local_i + stride < size:
             cache[local_i] += current_val
+
         stride *= 2
+        barrier()
     
     if local_i == 0:
-        output[batch] = cache[local_i]
-
-    
+        output[batch, 0] = cache[local_i]
 
 
 # ANCHOR_END: axis_sum
