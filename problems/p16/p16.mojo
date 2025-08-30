@@ -94,7 +94,6 @@ fn matmul_tiled[
     tiled_col = block_idx.x * TPB + thread_idx.x
 
 
-
     shared_a = tb[dtype]().row_major[TPB,TPB]().shared().alloc()
     shared_b = tb[dtype]().row_major[TPB,TPB]().shared().alloc()
     
@@ -103,6 +102,12 @@ fn matmul_tiled[
         shared_a[local_row, local_col] = a[tiled_row, k * TPB + local_row]
         shared_b[local_row, local_col] = b[k * TPB + local_row, tiled_col]
         barrier()
+
+        @parameter
+        for k in range(TPB):
+            acc += shared_a[local_row, k] * shared_b[k, local_col]
+    
+    output[tiled_row, tiled_col] = acc
 
 
         
