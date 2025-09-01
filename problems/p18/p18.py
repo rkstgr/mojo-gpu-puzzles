@@ -32,8 +32,8 @@ def softmax(
         input_value = graph.inputs[0]
         output = ops.custom(
             name="softmax",
-            device=DeviceRef.from_device(device),
             values=[input_value],
+            device=DeviceRef.from_device(device),
             out_types=[
                 TensorType(
                     dtype=input_tensor.dtype,
@@ -44,10 +44,12 @@ def softmax(
             parameters={
                 "target": "gpu" if device == Accelerator() else "cpu",
                 "input_size": input_tensor.shape[0],
-                "dtype": dtype
+                "dtype": dtype,
             },
         )[0].tensor
-        graph.outputs = [output]
+        graph.output(output)
+
+
 
     # ANCHOR_END: softmax_custom_op_graph
 
