@@ -102,6 +102,26 @@ fn layernorm_kernel[
     var sq_sum: Scalar[dtype] = 0
 
     # FILL ME IN (roughly 11 lines)
+    @parameter
+    for h in range(hidden_dim):
+        val = input[batch_idx, seq_idx, h]
+        sum_val += rebind[Scalar[dtype]](val)
+        sq_sum += rebind[Scalar[dtype]](val*val)
+    
+    mean_val = sum_val / hidden_dim
+    var_val = sq_sum/hidden_dim - mean_val*mean_val # computationally unstable
+    inv_std = 1.0 / sqrt(var_val + 1e-5)
+
+    inp_val = input[batch_idx, seq_idx, hidden_idx]
+    weight_val = rebind[Scalar[dtype]](ln_weight[hidden_idx])
+    bias_val = rebind[Scalar[dtype]](ln_bias[hidden_idx])
+    output[batch_idx, seq_idx, hidden_idx] = weight_val * (inp_val - mean_val) * inv_std + bias_val
+    
+        
+
+    
+
+    # compute mean
 
 
 # ANCHOR_END: layernorm_kernel
@@ -207,11 +227,34 @@ fn minimal_fused_kernel[
 
     # Step 1: Compute LayerNorm statistics once per sequence position
 
-    # FILL IN roughly 10 lines
+    var sum_val: Scalar[dtype] = 0
+    var sq_sum: Scalar[dtype] = 0
+
+    @parameter
+    for h in range(hidden_dim):
+        val = input[batch_idx, seq_idx, h]
+        sum_val += rebind[Scalar[dtype]](val)
+        sq_sum += rebind[Scalar[dtype]](val * val)
+    
+    mean_val = sum_val / hidden_dim
+    var_val = (sq_sum / hidden_dim) - (mean_val * mean_val)
+    inv_std = 1.0 / sqrt(var_val + 1e-5)
 
     # Step 2: Compute all outputs for this sequence position
 
-    # FILL IN roughly 10 lines
+    @parameter
+    for out_idx in range(output_dim):
+        var acc: Scalar[dtype] = 0
+
+        @parameter
+        for h in range(hidden_dim):
+            input_val = input[batch_idx, seq_idx, h]
+            weight_val = rebind[Scalar[dtype]](ln_weight[h])
+            bias_val = rebind[Scalar[dtype]](ln_bias[h])
+            normalized = (input_val - mean_val) * inv_std * weight_val + bias_val
+            acc += rebind[Scalar[dtype]](normalized * linear_weight[out_idx, h])
+
+        output[batch_idx, seq_idx, out_idx] = acc + rebind[Scalar[dtype]](linear_bias[out_idx])
 
 
 # ANCHOR_END: minimal_fused_forward_kernel

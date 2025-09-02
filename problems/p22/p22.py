@@ -31,9 +31,9 @@ warnings.filterwarnings("ignore", message=".*skipping cudagraphs.*")
 warnings.filterwarnings("ignore", message=".*mutated inputs.*")
 
 
-BATCH_SIZE = 4
-SEQ_LEN = 4
-HIDDEN_DIM = 8
+BATCH_SIZE = 32
+SEQ_LEN = 32
+HIDDEN_DIM = 32
 OUTPUT_DIM = 16
 EPS = 1e-5
 
