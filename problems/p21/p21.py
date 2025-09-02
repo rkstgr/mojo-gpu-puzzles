@@ -50,7 +50,7 @@ if __name__ == "__main__":
     print("=" * 70)
     print()
 
-    batch_size, seq_len, vocab_size, embed_dim = 8, 512, 10000, 512
+    batch_size, seq_len, vocab_size, embed_dim = 64, 1024, 100_000, 1024
     print(f"Configuration: B={batch_size}, L={seq_len}, V={vocab_size}, E={embed_dim}")
     print("-" * 60)
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     torch.cuda.synchronize()
 
     # Benchmark function
-    def benchmark_fn(fn, *args, num_trials=10):
+    def benchmark_fn(fn, *args, num_trials=30):
         torch.cuda.synchronize()
         start_time = time.perf_counter()
 
