@@ -6,7 +6,7 @@ from layout.tensor_builder import LayoutTensorBuild as tb
 from utils import IndexList
 from math import log2
 from algorithm.functional import elementwise, vectorize
-from sys import simdwidthof, argv, alignof
+from sys import simd_width_of, argv, alignof
 from testing import assert_equal
 from benchmark import Bench, BenchConfig, Bencher, BenchId, keep
 
@@ -14,7 +14,7 @@ alias SIZE = 1024
 alias rank = 1
 alias layout = Layout.row_major(SIZE)
 alias dtype = DType.float32
-alias SIMD_WIDTH = simdwidthof[dtype, target = get_gpu_target()]()
+alias SIMD_WIDTH = simd_width_of[dtype, target = get_gpu_target()]()
 
 
 # ANCHOR: elementwise_add_solution
