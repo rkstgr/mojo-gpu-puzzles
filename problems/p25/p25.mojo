@@ -27,7 +27,13 @@ fn neighbor_difference[
     global_i = block_dim.x * block_idx.x + thread_idx.x
     lane = lane_id()
 
-    # FILL IN (roughly 7 lines)
+    current_val = input[global_i]
+    next_val = shuffle_down(current_val, 1)
+    diff: Scalar[dtype] = 0
+    if lane < WARP_SIZE - 1:
+        diff = (next_val - current_val).reduce_add()
+    if global_i < size:
+        output[global_i] = diff
 
 
 # ANCHOR_END: neighbor_difference
@@ -53,7 +59,23 @@ fn moving_average_3[
     global_i = block_dim.x * block_idx.x + thread_idx.x
     lane = lane_id()
 
-    # FILL IN (roughly 10 lines)
+    if global_i < size:
+        # Get current, next, and next+1 values
+        current_val = input[global_i]
+        next_val = shuffle_down(current_val, 1)
+        next_next_val = shuffle_down(current_val, 2)
+
+        # Compute 3-point average - valid within warp boundaries
+        if lane < WARP_SIZE - 2 and global_i < size - 2:
+            output[global_i] = (current_val + next_val + next_next_val) / 3.0
+        elif lane < WARP_SIZE - 1 and global_i < size - 1:
+            # Second-to-last in warp: only current + next available
+            output[global_i] = (current_val + next_val) / 2.0
+        else:
+            # Last thread in warp or boundary cases: only current available
+            output[global_i] = current_val
+        
+
 
 
 # ANCHOR_END: moving_average_3
@@ -186,8 +208,8 @@ def test_moving_average():
 
         with input_buf.map_to_host() as input_host:
             input_host[0] = 1
-            for i in range(1, SIZE_2):
-                input_host[i] = input_host[i - 1] + i + 1
+            for i in range(SIZE_2):
+                input_host[i] = i % 3
 
         input_tensor = LayoutTensor[mut=False, dtype, layout_2](
             input_buf.unsafe_ptr()

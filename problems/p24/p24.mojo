@@ -6,7 +6,7 @@ from algorithm.functional import elementwise
 from layout import Layout, LayoutTensor
 from layout.tensor_builder import LayoutTensorBuild as tb
 from utils import IndexList
-from sys import argv, simdwidthof, sizeof, alignof
+from sys import argv, simd_width_of, size_of, align_of
 from testing import assert_equal
 from benchmark import (
     Bench,
@@ -25,7 +25,7 @@ alias SIZE = WARP_SIZE
 alias BLOCKS_PER_GRID = (1, 1)
 alias THREADS_PER_BLOCK = (WARP_SIZE, 1)  # optimal choice for warp kernel
 alias dtype = DType.float32
-alias SIMD_WIDTH = simdwidthof[dtype]()
+alias SIMD_WIDTH = simd_width_of[dtype]()
 alias in_layout = Layout.row_major(SIZE)
 alias out_layout = Layout.row_major(1)
 
@@ -76,7 +76,14 @@ fn simple_warp_dot_product[
     b: LayoutTensor[mut=False, dtype, in_layout],
 ):
     global_i = block_dim.x * block_idx.x + thread_idx.x
-    # FILL IN (6 lines at most)
+    partial_product: Scalar[dtype] = 0.0
+    if global_i < size:
+        partial_product = (a[global_i] * b[global_i]).reduce_add()
+    total = warp_sum(partial_product)
+    if lane_id() == 0:
+        output[0] = total
+
+    
 
 
 # ANCHOR_END: simple_warp_kernel
@@ -96,11 +103,15 @@ fn functional_warp_dot_product[
     @parameter
     @always_inline
     fn compute_dot_product[
-        simd_width: Int, rank: Int, alignment: Int = alignof[dtype]()
+        simd_width: Int, rank: Int, alignment: Int = align_of[dtype]()
     ](indices: IndexList[rank]) capturing -> None:
         idx = indices[0]
-        print("idx:", idx)
-        # FILL IN (10 lines at most)
+        a_simd = a.load[1](idx, 0)
+        b_simd = b.load[1](idx, 0)
+        res = (a_simd * b_simd).reduce_add()
+        total = warp_sum(res)
+        if lane_id() == 0:
+            output.store[1](0, 0, total)
 
     # Launch exactly WARP_SIZE threads (one warp) to process all elements
     elementwise[compute_dot_product, 1, target="gpu"](WARP_SIZE, ctx)
