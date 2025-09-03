@@ -6,7 +6,7 @@ from layout.tensor_builder import LayoutTensorBuild as tb
 from utils import IndexList
 from math import log2
 from algorithm.functional import elementwise, vectorize
-from sys import simdwidthof, argv, alignof
+from sys import argv, simd_width_of, align_of
 from testing import assert_equal
 from benchmark import Bench, BenchConfig, Bencher, BenchId, keep
 
@@ -15,7 +15,7 @@ alias SIZE = 1024
 alias rank = 1
 alias layout = Layout.row_major(SIZE)
 alias dtype = DType.float32
-alias SIMD_WIDTH = simdwidthof[dtype, target = get_gpu_target()]()
+alias SIMD_WIDTH = simd_width_of[dtype, target = get_gpu_target()]()
 
 
 fn elementwise_add[
@@ -29,11 +29,14 @@ fn elementwise_add[
     @parameter
     @always_inline
     fn add[
-        simd_width: Int, rank: Int, alignment: Int = alignof[dtype]()
+        simd_width: Int, rank: Int, alignment: Int = align_of[dtype]()
     ](indices: IndexList[rank]) capturing -> None:
         idx = indices[0]
         print("idx:", idx)
-        # FILL IN (2 to 4 lines)
+        a_simd = a.load[simd_width](idx, 0)
+        b_simd = b.load[simd_width](idx, 0)
+        result = a_simd + b_simd
+        output.store[simd_width](idx, 0, result)
 
     elementwise[add, SIMD_WIDTH, target="gpu"](a.size(), ctx)
 
@@ -61,7 +64,7 @@ fn tiled_elementwise_add[
     @parameter
     @always_inline
     fn process_tiles[
-        simd_width: Int, rank: Int, alignment: Int = alignof[dtype]()
+        simd_width: Int, rank: Int, alignment: Int = align_of[dtype]()
     ](indices: IndexList[rank]) capturing -> None:
         tile_id = indices[0]
         print("tile_id:", tile_id)
@@ -99,7 +102,7 @@ fn manual_vectorized_tiled_elementwise_add[
     @parameter
     @always_inline
     fn process_manual_vectorized_tiles[
-        num_threads_per_tile: Int, rank: Int, alignment: Int = alignof[dtype]()
+        num_threads_per_tile: Int, rank: Int, alignment: Int = align_of[dtype]()
     ](indices: IndexList[rank]) capturing -> None:
         tile_id = indices[0]
         print("tile_id:", tile_id)
@@ -138,7 +141,7 @@ fn vectorize_within_tiles_elementwise_add[
     @parameter
     @always_inline
     fn process_tile_with_vectorize[
-        num_threads_per_tile: Int, rank: Int, alignment: Int = alignof[dtype]()
+        num_threads_per_tile: Int, rank: Int, alignment: Int = align_of[dtype]()
     ](indices: IndexList[rank]) capturing -> None:
         tile_id = indices[0]
         tile_start = tile_id * tile_size
