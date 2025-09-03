@@ -68,16 +68,16 @@ fn tiled_elementwise_add[
     ](indices: IndexList[rank]) capturing -> None:
         tile_id = indices[0]
         print("tile_id:", tile_id)
-        out_tile = output.tile[tile_size](tile_id)
+        output_tile = output.tile[tile_size](tile_id)
         a_tile = a.tile[tile_size](tile_id)
         b_tile = b.tile[tile_size](tile_id)
 
         @parameter
         for i in range(tile_size):
             a_vec = a_tile.load[simd_width](i, 0)
-            b_vec = a_tile.load[simd_width](i, 0)
-            res = a_vec + b_vec
-            out_tile.store[simd_width](i, 0, res)
+            b_vec = b_tile.load[simd_width](i, 0)
+            ret = a_vec + b_vec
+            output_tile.store[simd_width](i, 0, ret)
 
     num_tiles = (size + tile_size - 1) // tile_size
     elementwise[process_tiles, 1, target="gpu"](num_tiles, ctx)
