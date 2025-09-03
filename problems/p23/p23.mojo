@@ -72,7 +72,12 @@ fn tiled_elementwise_add[
         a_tile = a.tile[tile_size](tile_id)
         b_tile = b.tile[tile_size](tile_id)
 
-        # FILL IN (6 lines at most)
+        @parameter
+        for i in range(tile_size):
+            a_vec = a_tile.load[simd_width](i, 0)
+            b_vec = a_tile.load[simd_width](i, 0)
+            res = a_vec + b_vec
+            out_tile.store[simd_width](i, 0, res)
 
     num_tiles = (size + tile_size - 1) // tile_size
     elementwise[process_tiles, 1, target="gpu"](num_tiles, ctx)
