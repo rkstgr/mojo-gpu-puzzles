@@ -121,7 +121,12 @@ fn basic_broadcast[
         var broadcast_value: output.element_type = 0.0
 
         # FILL IN (roughly 10 lines)
+        if lane == 0:
+            block_start = block_dim.x * block_idx.x
+            broadcast_value = (input[block_start] + input[block_start+1] + input[block_start+2] + input[block_start+3]).reduce_add()
+        broadcast_value = broadcast(broadcast_value)
 
+        output[global_i] = input[global_i] + broadcast_value        
 
 # ANCHOR_END: basic_broadcast
 
