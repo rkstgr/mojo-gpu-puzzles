@@ -29,8 +29,7 @@ fn butterfly_pair_swap[
 
     # FILL ME IN (4 lines)
     if global_i < size:
-        lane = lane_id()
-        current_val = input[lane]
+        current_val = input[global_i]
         swapped_val = shuffle_xor(current_val, 1)
         output[global_i] = swapped_val
 
@@ -55,7 +54,13 @@ fn butterfly_parallel_max[
     global_i = block_dim.x * block_idx.x + thread_idx.x
 
     # FILL ME IN (roughly 7 lines)
-
+    if global_i < size:
+        stride = WARP_SIZE
+        current_max = input[global_i]
+        while stride > 0:
+            current_max = max(current_max, shuffle_xor(current_max, stride))
+            stride //= 2
+        output[global_i] = current_max
 
 # ANCHOR_END: butterfly_parallel_max
 
@@ -82,9 +87,17 @@ fn butterfly_conditional_max[
     lane = lane_id()
 
     if global_i < size:
-        current_val = input[global_i]
-        min_val = current_val
-
+        stride = WARP_SIZE
+        current_max = input[global_i]
+        current_min = current_max
+        while stride > 0:
+            current_max = max(current_max, shuffle_xor(current_max, stride))
+            current_min = min(current_min, shuffle_xor(current_min, stride))
+            stride //= 2
+        if lane % 2 == 0:
+            output[global_i] = current_max
+        else:
+            output[global_i] = current_min
         # FILL ME IN (roughly 11 lines)
 
 
