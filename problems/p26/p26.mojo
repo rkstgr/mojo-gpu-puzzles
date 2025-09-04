@@ -133,6 +133,10 @@ fn warp_inclusive_prefix_sum[
     global_i = block_dim.x * block_idx.x + thread_idx.x
 
     # FILL ME IN (roughly 4 lines)
+    if global_i < size:
+        current_val = input[global_i]
+        scan_result = prefix_sum(rebind[Scalar[dtype]](current_val))
+        output[global_i] = scan_result
 
 
 # ANCHOR_END: warp_inclusive_prefix_sum
