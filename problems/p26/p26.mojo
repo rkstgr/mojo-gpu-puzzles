@@ -28,6 +28,11 @@ fn butterfly_pair_swap[
     global_i = block_dim.x * block_idx.x + thread_idx.x
 
     # FILL ME IN (4 lines)
+    if global_i < size:
+        lane = lane_id()
+        current_val = input[lane]
+        swapped_val = shuffle_xor(current_val, 1)
+        output[global_i] = swapped_val
 
 
 # ANCHOR_END: butterfly_pair_swap
