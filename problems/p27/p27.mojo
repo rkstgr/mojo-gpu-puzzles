@@ -66,23 +66,35 @@ fn block_histogram_bin_extract[
     # Step 1: Each thread determines its bin and element value
 
     # FILL IN (roughly 9 lines)
-
-    # Step 2: Create predicate for target bin extraction
-
-    # FILL IN (roughly 3 line)
-
-    # Step 3: Use block.prefix_sum() for parallel bin extraction!
-    # This computes where each thread should write within the target bin
-
-    # FILL IN (1 line)
+    if global_i >= size:
+        return
+    
+    my_value = input_data[global_i][0]  # Extract SIMD like in dot product
+    bin_number = Int(floor(my_value * num_bins))
+    if bin_number == num_bins:
+        bin_number = num_bins - 1
+    
+    var belongs_to_target: Int = 0
+    if 0 <= my_value and my_value <= 1.0 and (my_bin == target_bin):
+        belongs_to_target = 1
+    
+    offset = block.prefix_sum[
+        dtype=DType.int32,         # Working with integer predicates
+        block_size=tpb,            # Same as block.sum()
+        exclusive=True             # Key: gives position BEFORE each thread
+    ](val=SIMD[DType.int32, 1](my_predicate_value))
 
     # Step 4: Extract and pack elements belonging to target_bin
 
-    # FILL IN (roughly 2 line)
+    if belongs_to_target:
+        bin_output[Int(offset[0])] = my_value
 
     # Step 5: Final thread computes total count for this bin
 
-    # FILL IN (roughly 3 line)
+    if local_i == tpb - 1:  # Last thread in block
+        total_count = offset[0] + belongs_to_target  # Inclusive = exclusive + own contribution
+        count_output[0] = total_count
+
 
 
 # ANCHOR_END: block_histogram
@@ -114,23 +126,34 @@ fn block_normalize_vector[
     # Step 1: Each thread loads its element
 
     # FILL IN (roughly 3 lines)
+    var value: Scalar[dtype] = 0.0
+    if global_i < size:
+        value = input_data[global_i][0]
 
     # Step 2: Use block.sum() to compute total sum (familiar from earlier!)
 
-    # FILL IN (1 line)
+    block_sum = block.sum[block_size=tpb, broadcast=False](SIMD[DType.float32, 1](value))
 
     # Step 3: Thread 0 computes mean value
 
-    # FILL IN (roughly 4 lines)
+    var mean_value: Scalar[dtype] = 1.0
+    if local_i == 0:
+        if block_sum[0] > 0:
+            mean_value = block_sum[0] / Float32(size)
 
     # Step 4: block.broadcast() shares mean to ALL threads!
     # This completes the block operations trilogy demonstration
 
     # FILL IN (1 line)
+    broadcasted_mean = block.broadcast[
+        dtype=DType.float32, width=1, block_size=tpb
+    ](SIMD[DType.float32, 1](mean_value, UInt(0)))
 
     # Step 5: Each thread normalizes by the mean
 
     # FILL IN (roughly 3 lines)
+    if global_i < size:
+        output_data[global_i] = value / broadcasted_mean[0]
 
 
 # ANCHOR_END: block_normalize
